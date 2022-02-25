@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -158,11 +159,16 @@ class ApkInstrumenter(object):
         )
         instrumented_jacoco_path = os.path.join(working_dir, "jacoco")
         instrumented_dex_path = os.path.join(working_dir, "dex")
+        apktool_output_path = os.path.join(working_dir, "apktool")
+        apktool_manifest_path = os.path.join(apktool_output_path, "AndroidManifest.xml")
 
         self.run_dex2jar(target_apk_path, classes_jar_path)
         self.instrument_jar(classes_jar_path, instrumented_jacoco_path)
         self.convert_to_dalvik(instrumented_jacoco_path, instrumented_dex_path)
         self.repackage_apk(target_apk_path, instrumented_dex_path)
+        self.apktool_decode(target_apk_path, apktool_output_path)
+        self.patch_manifest(apktool_manifest_path)
+        self.apktool_build(apktool_output_path, target_apk_path)
         self.align_apk(target_apk_path)
         self.sign_apk(target_apk_path)
         self.copy_outputs(target_apk_path, classes_jar_path)
@@ -309,6 +315,82 @@ class ApkInstrumenter(object):
 
         except Exception as e:
             logger.error("Error during apk repackaging: {0}".format(e))
+            raise
+
+    def apktool_decode(self, target_apk_path, apktool_output_path):
+        try:
+            apktool_cmd = [
+                self.APKTOOL_PATH,
+                "d",
+                "-s",
+                "-o",
+                apktool_output_path,
+                target_apk_path,
+            ]
+
+            logger.info(
+                'Decoding APK resources using apktool command: {0}'.format(
+                    " ".join(apktool_cmd)
+                )
+            )
+            subprocess.check_output(apktool_cmd, stderr=subprocess.STDOUT)
+
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                "Error during apktool command: {0}".format(
+                    e.output.decode(errors="replace") if e.output else e
+                )
+            )
+            raise
+        except Exception as e:
+            logger.error("Error during apktool command: {0}".format(e))
+            raise
+
+    def patch_manifest(self, manifest_path):
+        try:
+            logger.info('Patching AndroidManifest.xml to register the broadcast receiver')
+
+            ET.register_namespace('android', "http://schemas.android.com/apk/res/android")
+            manifest = ET.parse(manifest_path)
+            application = manifest.getroot().find('./application')
+            receiver = ET.SubElement(application, 'receiver')
+            receiver.set('android:name', 'cosmo.receiver.EndCoverageBroadcast')
+            receiver.set('android:exported', 'true')
+            intent_filter = ET.SubElement(receiver, 'intent-filter')
+            action = ET.SubElement(intent_filter, 'action')
+            action.set('android:name', 'intent.END_COVERAGE')
+            manifest.write(manifest_path)
+
+        except Exception as e:
+            logger.error("Error patching AndroidManifest.xml: {0}".format(e))
+            raise
+
+    def apktool_build(self, apktool_output_path, target_apk_path):
+        try:
+            apktool_cmd = [
+                self.APKTOOL_PATH,
+                "b",
+                "-o",
+                target_apk_path,
+                apktool_output_path,
+            ]
+
+            logger.info(
+                'Rebuilding APK using apktool command: {0}'.format(
+                    " ".join(apktool_cmd)
+                )
+            )
+            subprocess.check_output(apktool_cmd, stderr=subprocess.STDOUT)
+
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                "Error during apktool command: {0}".format(
+                    e.output.decode(errors="replace") if e.output else e
+                )
+            )
+            raise
+        except Exception as e:
+            logger.error("Error during apktool command: {0}".format(e))
             raise
 
     def align_apk(self, target_apk_path):
