@@ -26,6 +26,7 @@ class ApkInstrumenter(object):
     DX_PATH = "dx"
     ZIPALIGN_PATH = "zipalign"
     APKSIGNER_PATH = "apksigner"
+    APKTOOL_PATH = "apktool"
 
     def __init__(self, apk_path: str):
         self.apk_path = os.path.normpath(apk_path)
@@ -60,6 +61,7 @@ class ApkInstrumenter(object):
         full_dx_path = shutil.which(self.DX_PATH)
         full_zipalign_path = shutil.which(self.ZIPALIGN_PATH)
         full_apksigner_path = shutil.which(self.APKSIGNER_PATH)
+        full_apktool_path = shutil.which(self.APKTOOL_PATH)
 
         if full_java_path is None:
             raise RuntimeError(
@@ -104,6 +106,15 @@ class ApkInstrumenter(object):
             )
         else:
             self.APKSIGNER_PATH = full_apksigner_path
+
+        if full_apktool_path is None:
+            raise RuntimeError(
+                'Something is wrong with executable "{0}", please make apktool '
+                "(https://ibotpeaches.github.io/Apktool/) is properly installed and "
+                "configured".format(self.APKTOOL_PATH)
+            )
+        else:
+            self.APKTOOL_PATH = full_apktool_path
 
     def parse_android_apk(self):
         """
