@@ -159,6 +159,15 @@ class ApkInstrumenter(object):
         instrumented_jacoco_path = os.path.join(working_dir, "jacoco")
         instrumented_dex_path = os.path.join(working_dir, "dex")
 
+        self.run_dex2jar(target_apk_path, classes_jar_path)
+        self.instrument_jar(classes_jar_path, instrumented_jacoco_path)
+        self.convert_to_dalvik(instrumented_jacoco_path, instrumented_dex_path)
+        self.repackage_apk(target_apk_path, instrumented_dex_path)
+        self.align_apk(target_apk_path)
+        self.sign_apk(target_apk_path)
+        self.copy_outputs(target_apk_path, classes_jar_path)
+
+    def run_dex2jar(self, target_apk_path, classes_jar_path):
         try:
             dex2jar_cmd = [
                 self.DEX2JAR_PATH,
@@ -188,6 +197,7 @@ class ApkInstrumenter(object):
             logger.error("Error during dex2jar command: {0}".format(e))
             raise
 
+    def instrument_jar(self, classes_jar_path, instrumented_jacoco_path):
         try:
             instrument_cmd = [
                 self.JAVA_PATH,
@@ -215,6 +225,7 @@ class ApkInstrumenter(object):
             logger.error("Error during Java instrumentation command: {0}".format(e))
             raise
 
+    def convert_to_dalvik(self, instrumented_jacoco_path, instrumented_dex_path):
         try:
             if not os.path.isdir(instrumented_dex_path):
                 os.makedirs(instrumented_dex_path)
@@ -250,6 +261,7 @@ class ApkInstrumenter(object):
             )
             raise
 
+    def repackage_apk(self, target_apk_path, instrumented_dex_path):
         try:
             # Since Python doesn't allow directly modifying a file inside an archive, an
             # OS independent solution is to create a new archive with the changes. Since
@@ -299,6 +311,7 @@ class ApkInstrumenter(object):
             logger.error("Error during apk repackaging: {0}".format(e))
             raise
 
+    def align_apk(self, target_apk_path):
         try:
             # Since zipalign cannot be run inplace, a temp file will be created.
             apk_copy_path = shutil.copy2(
@@ -333,6 +346,7 @@ class ApkInstrumenter(object):
             if os.path.isfile("{0}.copy".format(target_apk_path)):
                 os.remove("{0}.copy".format(target_apk_path))
 
+    def sign_apk(self, target_apk_path):
         try:
             sign_cmd = [
                 self.APKSIGNER_PATH,
@@ -364,6 +378,7 @@ class ApkInstrumenter(object):
             logger.error("Error during sign command: {0}".format(e))
             raise
 
+    def copy_outputs(self, target_apk_path, classes_jar_path):
         # Copy the instrumented apk and the jar file in the output directory.
         output_dir = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "output_apks"
