@@ -1,0 +1,12 @@
+This directory contains the source code to build receiver.jar, which consists
+of an Android broadcast receiver class to trigger the output of the coverage
+data from JaCoCo.
+
+You need to create a local.properties file with a single `platform.dir`
+property pointing to the path where the file `android.jar` from the Android SDK
+platform can be found. SDK version is not very important.
+
+Afterwards, run `./gradlew install` which will build and install the file
+`receiver.jar` in the root's `lib` directory for COSMO APK instrumenter to
+find.
+

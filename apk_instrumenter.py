@@ -58,6 +58,10 @@ class ApkInstrumenter(object):
         Make sure all the needed tools are available and ready to be used.
         """
 
+        if not os.path.isfile(self.receiver_path):
+            raise RuntimeError(
+                "The receiver.jar library file is missing. You need to build it from lib/receiver."
+            )
         # Make sure to use the full path of the executable (needed for cross-platform
         # compatibility).
         full_java_path = shutil.which(self.JAVA_PATH)
