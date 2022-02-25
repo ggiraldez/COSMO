@@ -36,6 +36,9 @@ class ApkInstrumenter(object):
         self.jacoco_agent_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "lib", "jacocoagent.jar"
         )
+        self.receiver_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "lib", "receiver.jar"
+        )
 
     def run_instrumentation(self):
         try:
@@ -224,6 +227,7 @@ class ApkInstrumenter(object):
                 "--output={0}".format(instrumented_dex_path),
                 instrumented_jacoco_path,
                 self.jacoco_agent_path,
+                self.receiver_path
             ]
 
             logger.info(
