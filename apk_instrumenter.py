@@ -285,37 +285,6 @@ class ApkInstrumenter(object):
             raise
 
         try:
-            sign_cmd = [
-                self.APKSIGNER_PATH,
-                "sign",
-                "--ks-pass",
-                "pass:android",
-                "--ks",
-                os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), "lib", "debug.keystore"
-                ),
-                target_apk_path,
-            ]
-
-            logger.info(
-                'Running sign command with default debug key "{0}"'.format(
-                    " ".join(sign_cmd)
-                )
-            )
-            subprocess.check_output(sign_cmd, stderr=subprocess.STDOUT)
-
-        except subprocess.CalledProcessError as e:
-            logger.error(
-                "Error during sign command: {0}".format(
-                    e.output.decode(errors="replace") if e.output else e
-                )
-            )
-            raise
-        except Exception as e:
-            logger.error("Error during sign command: {0}".format(e))
-            raise
-
-        try:
             # Since zipalign cannot be run inplace, a temp file will be created.
             apk_copy_path = shutil.copy2(
                 target_apk_path, "{0}.copy".format(target_apk_path)
@@ -348,6 +317,37 @@ class ApkInstrumenter(object):
             # Remove the temp file used for zipalign.
             if os.path.isfile("{0}.copy".format(target_apk_path)):
                 os.remove("{0}.copy".format(target_apk_path))
+
+        try:
+            sign_cmd = [
+                self.APKSIGNER_PATH,
+                "sign",
+                "--ks-pass",
+                "pass:android",
+                "--ks",
+                os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), "lib", "debug.keystore"
+                ),
+                target_apk_path,
+            ]
+
+            logger.info(
+                'Running sign command with default debug key "{0}"'.format(
+                    " ".join(sign_cmd)
+                )
+            )
+            subprocess.check_output(sign_cmd, stderr=subprocess.STDOUT)
+
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                "Error during sign command: {0}".format(
+                    e.output.decode(errors="replace") if e.output else e
+                )
+            )
+            raise
+        except Exception as e:
+            logger.error("Error during sign command: {0}".format(e))
+            raise
 
         # Copy the instrumented apk and the jar file in the output directory.
         output_dir = os.path.join(
