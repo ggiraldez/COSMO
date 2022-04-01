@@ -40,6 +40,9 @@ class ApkInstrumenter(object):
         self.receiver_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "lib", "receiver.jar"
         )
+        self.jacoco_agent_properties_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "templates", "jacoco-agent.properties"
+        )
 
     def run_instrumentation(self):
         try:
@@ -313,6 +316,12 @@ class ApkInstrumenter(object):
                                 instrumented_dex, dex_file.read()
                             )
 
+                    # Copy jacoco-agent.properties
+                    with open(self.jacoco_agent_properties_path, "rb") as properties_file:
+                        unsigned_apk_zip_buffer.writestr(
+                            "jacoco-agent.properties", properties_file.read()
+                        )
+
                 # Write the in-memory archive to disk.
                 with open(target_apk_path, "wb") as unsigned_apk:
                     unsigned_apk.write(repackaged_apk_buffer.getvalue())
@@ -374,6 +383,7 @@ class ApkInstrumenter(object):
             apktool_cmd = [
                 self.APKTOOL_PATH,
                 "b",
+                "--use-aapt2",
                 "-o",
                 target_apk_path,
                 apktool_output_path,
